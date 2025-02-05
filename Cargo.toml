@@ -6,7 +6,5 @@ edition = "2021"
 license = "CC0-1.0"
 homepage = "https://github.com/raphjaph/auction"
 repository = "https://github.com/raphjaph/auction"
-autotests = false
-autobins = false
 
 [dependencies]
