@@ -17,12 +17,6 @@ pub struct Options {
   )]
   #[clap(long, help = "Wallet <DESCRIPTOR> to use for bidding address.")]
   pub(crate) descriptor: Option<String>,
-  #[clap(
-    long,
-    default_value = "agora",
-    help = "Name Bitcoin Core wallet <WALLET>."
-  )]
-  pub(crate) name: String,
 }
 
 impl Options {
