@@ -17,12 +17,14 @@ use {
     .valid(AnsiColor::Green.on_default()),
 )]
 pub(crate) struct Arguments {
+  #[command(flatten)]
+  pub(crate) options: Options,
   #[command(subcommand)]
   pub(crate) subcommand: Subcommand,
 }
 
 impl Arguments {
   pub(crate) fn run(self) -> Result {
-    self.subcommand.run()
+    self.subcommand.run(self.options)
   }
 }

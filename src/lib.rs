@@ -1,21 +1,31 @@
 use {
-  anyhow::Error,
+  anyhow::{anyhow, bail, ensure, Context, Error},
   arguments::Arguments,
   bdk_bitcoind_rpc::{
     bitcoincore_rpc::{Auth, Client, RpcApi},
     Emitter,
   },
   bdk_wallet::{
-    bitcoin::{Network, Transaction},
+    bitcoin::{Address, Network, Script, Transaction},
     chain::local_chain::CheckPoint,
     AddressInfo, Balance, KeychainKind, Wallet,
   },
+  chain::Chain,
   clap::Parser,
+  options::Options,
   serde::{Deserialize, Serialize},
-  std::{env, process},
+  std::{
+    env,
+    fmt::{self, Display, Formatter},
+    path::{Path, PathBuf},
+    process,
+    str::FromStr,
+  },
 };
 
 mod arguments;
+mod chain;
+mod options;
 mod subcommand;
 
 type Result<T = (), E = Error> = std::result::Result<T, E>;

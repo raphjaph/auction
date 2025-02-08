@@ -7,11 +7,12 @@ pub(crate) enum Subcommand {
 }
 
 impl Subcommand {
-  pub(crate) fn run(self) -> Result {
+  pub(crate) fn run(self, options: Options) -> Result {
     match self {
       Self::Run => {
         const COOKIE_FILE_PATH: &str = "/Users/raphael/lib/Bitcoin/signet/.cookie";
-        const DESCRIPTOR: &str = "wpkh([20648cc1/84h/1h/0h]tpubDCLwqmrwAw1ie9rU3R92RrYBYxBDdFHW7Cta8ZbGfkfNAsFiQZKEhMKDfC7bFpMiqtR21n1hhZ3YjPPaj8x5P8Lac6gXK1eoa1uncM8AmEc/0/*)#3vw5s4wr";
+        const EXTERNAL_DESCRIPTOR: &str = "wpkh([20648cc1/84h/1h/0h]tpubDCLwqmrwAw1ie9rU3R92RrYBYxBDdFHW7Cta8ZbGfkfNAsFiQZKEhMKDfC7bFpMiqtR21n1hhZ3YjPPaj8x5P8Lac6gXK1eoa1uncM8AmEc/0/*)#3vw5s4wr";
+        const INTERNAL_DESCRIPTOR: &str = "wpkh([20648cc1/84h/1h/0h]tpubDCLwqmrwAw1ie9rU3R92RrYBYxBDdFHW7Cta8ZbGfkfNAsFiQZKEhMKDfC7bFpMiqtR21n1hhZ3YjPPaj8x5P8Lac6gXK1eoa1uncM8AmEc/1/*)";
         // const EXTERNAL_DESCRIPTOR: &str = "tr(tprv8ZgxMBicQKsPdrjwWCyXqqJ4YqcyG4DmKtjjsRt29v1PtD3r3PuFJAjWytzcvSTKnZAGAkPSmnrdnuHWxCAwy3i1iPhrtKAfXRH7dVCNGp6/86'/1'/0'/0/*)#g9xn7wf9";
         // const INTERNAL_DESCRIPTOR: &str = "tr(tprv8ZgxMBicQKsPdrjwWCyXqqJ4YqcyG4DmKtjjsRt29v1PtD3r3PuFJAjWytzcvSTKnZAGAkPSmnrdnuHWxCAwy3i1iPhrtKAfXRH7dVCNGp6/86'/1'/0'/1/*)#e3rjrmea";
 
@@ -30,7 +31,7 @@ impl Subcommand {
           }
           None => {
             println!("Creating new wallet database.");
-            Wallet::create_single(DESCRIPTOR)
+            Wallet::create(EXTERNAL_DESCRIPTOR, INTERNAL_DESCRIPTOR)
               .network(Network::Signet)
               .create_wallet(&mut conn)
               .unwrap()
