@@ -8,11 +8,12 @@ use {
   bdk_wallet::{
     bitcoin::{Address, Network, Script, Transaction},
     chain::local_chain::CheckPoint,
-    AddressInfo, Balance, KeychainKind, Wallet,
+    Balance, PersistedWallet, Wallet,
   },
   chain::Chain,
   clap::Parser,
   options::Options,
+  rusqlite::Connection,
   serde::{Deserialize, Serialize},
   std::{
     env,
@@ -48,7 +49,10 @@ pub fn main() {
       process::exit(1);
     }
 
-    Ok(_) => {
+    Ok(output) => {
+      if let Some(output) = output {
+        output.print();
+      }
       process::exit(0);
     }
   }
