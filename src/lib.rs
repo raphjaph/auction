@@ -6,9 +6,9 @@ use {
     Emitter,
   },
   bdk_wallet::{
-    bitcoin::{Address, Network, Script, Transaction},
+    bitcoin::{Network, Transaction},
     chain::local_chain::CheckPoint,
-    Balance, PersistedWallet, Wallet,
+    KeychainKind, PersistedWallet, Wallet,
   },
   chain::Chain,
   clap::Parser,

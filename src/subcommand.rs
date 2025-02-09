@@ -2,8 +2,8 @@ use super::*;
 
 mod balance;
 mod create;
+mod receive;
 
-const COOKIE_FILE_PATH: &str = "/Users/raphael/lib/Bitcoin/signet/.cookie";
 const EXTERNAL_DESCRIPTOR: &str = "wpkh([20648cc1/84h/1h/0h]tpubDCLwqmrwAw1ie9rU3R92RrYBYxBDdFHW7Cta8ZbGfkfNAsFiQZKEhMKDfC7bFpMiqtR21n1hhZ3YjPPaj8x5P8Lac6gXK1eoa1uncM8AmEc/0/*)#3vw5s4wr";
 const INTERNAL_DESCRIPTOR: &str = "wpkh([20648cc1/84h/1h/0h]tpubDCLwqmrwAw1ie9rU3R92RrYBYxBDdFHW7Cta8ZbGfkfNAsFiQZKEhMKDfC7bFpMiqtR21n1hhZ3YjPPaj8x5P8Lac6gXK1eoa1uncM8AmEc/1/*)";
 
@@ -13,15 +13,22 @@ pub(crate) enum Subcommand {
   Create(create::Create),
   #[command(about = "Show wallet balance")]
   Balance,
+  #[command(about = "Get new receive address")]
+  Receive,
 }
 
 impl Subcommand {
   pub(crate) fn run(self, options: Options) -> SubcommandResult {
-    let file_path = "test_wallet.sqlite3";
-    let mut conn = Connection::open(file_path).unwrap();
+    let mut conn = Connection::open(
+      options
+        .chain()
+        .join_with_data_dir(options.data_dir())
+        .join("wallet.sqlite3"),
+    )
+    .unwrap();
 
     let wallet_opt = Wallet::load()
-      .check_network(Network::Signet)
+      .check_network(options.network())
       .load_wallet(&mut conn)
       .unwrap();
 
@@ -39,15 +46,17 @@ impl Subcommand {
       }
     };
 
-    let rpc_client: Client = Client::new(
-      "http://127.0.0.1:38332",
-      Auth::CookieFile(COOKIE_FILE_PATH.into()),
-    )
-    .unwrap();
+    log::info!(
+      "Connecting to Bitcoin Core RPC at {}",
+      options.bitcoin_rpc_url()
+    );
+
+    let rpc_client: Client = options.bitcoin_rpc_client()?;
 
     let blockchain_info = rpc_client.get_blockchain_info().unwrap();
-    log::info!("Connected to Bitcoin Core RPC.");
+
     log::info!("Chain: {}", blockchain_info.chain);
+
     log::info!(
       "Latest block: {} at height {}",
       blockchain_info.best_block_hash,
@@ -55,6 +64,7 @@ impl Subcommand {
     );
 
     let wallet_tip: CheckPoint = wallet.latest_checkpoint();
+
     log::info!(
       "Current wallet tip is: {} at height {}",
       &wallet_tip.hash(),
@@ -64,6 +74,7 @@ impl Subcommand {
     let mut emitter = Emitter::new(&rpc_client, wallet_tip.clone(), wallet_tip.height());
 
     log::info!("Syncing blocks...");
+
     while let Some(block) = emitter.next_block().unwrap() {
       wallet
         .apply_block_connected_to(&block.block, block.block_height(), block.connected_to())
@@ -71,20 +82,16 @@ impl Subcommand {
     }
 
     log::info!("Syncing mempool...");
+
     let mempool_emissions: Vec<(Transaction, u64)> = emitter.mempool().unwrap();
     wallet.apply_unconfirmed_txs(mempool_emissions);
 
     wallet.persist(&mut conn).unwrap();
 
-    //    let address: AddressInfo = wallet.reveal_next_address(KeychainKind::External);
-    //    println!(
-    //      "Generated address {} at index {}",
-    //      address.address, address.index
-    //    );
-
     match self {
       Self::Create(create) => create.run(options),
       Self::Balance => balance::run(wallet),
+      Self::Receive => receive::run(&mut wallet),
     }
   }
 }

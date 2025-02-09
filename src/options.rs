@@ -6,15 +6,10 @@ pub struct Options {
   pub(crate) bitcoin_data_dir: Option<PathBuf>,
   #[arg(long, help = "Connect to Bitcoin Core RPC at <RPC_URL>.")]
   pub(crate) bitcoin_rpc_port: Option<u16>,
-  #[clap(long, help = "Store acme cache in <DATA_DIR>.")]
+  #[clap(long, help = "Store wallet database and acme cache in <DATA_DIR>.")]
   pub(crate) data_dir: Option<PathBuf>,
   #[clap(long, help = "Run on <CHAIN>.")]
   pub(crate) chain: Option<Chain>,
-  #[clap(
-    long,
-    default_value = "2016",
-    help = "Auction <CYCLE_LENGTH> in blocks."
-  )]
   #[clap(long, help = "Wallet <DESCRIPTOR> to use for bidding address.")]
   pub(crate) descriptor: Option<String>,
 }
@@ -33,10 +28,26 @@ impl Options {
   }
 
   pub(crate) fn bitcoin_rpc_auth(&self) -> Result<Auth> {
-    let path = self.bitcoin_data_dir.clone().unwrap_or(self.data_dir());
+    let bitcoin_data_dir = match &self.bitcoin_data_dir {
+      Some(bitcoin_data_dir) => bitcoin_data_dir.clone(),
+      None => {
+        if cfg!(target_os = "linux") {
+          dirs::home_dir()
+            .ok_or_else(|| anyhow!("failed to get cookie file path: could not get home dir"))?
+            .join(".bitcoin")
+        } else {
+          dirs::data_dir()
+            .ok_or_else(|| anyhow!("failed to get cookie file path: could not get data dir"))?
+            .join("Bitcoin")
+        }
+      }
+    };
+
     let cookie_file = match self.network() {
-      Network::Bitcoin => path.join(".cookie"),
-      _ => path.join(self.network().to_string()).join(".cookie"),
+      Network::Bitcoin => bitcoin_data_dir.join(".cookie"),
+      _ => bitcoin_data_dir
+        .join(self.network().to_string())
+        .join(".cookie"),
     };
 
     Ok(Auth::CookieFile(cookie_file))
@@ -48,17 +59,12 @@ impl Options {
       .unwrap_or_else(|| self.chain().default_rpc_port())
   }
 
-  pub(crate) fn bitcoin_rpc_url(&self, wallet_name: Option<String>) -> String {
-    let base_url = format!("127.0.0.1:{}", self.bitcoin_rpc_port());
-
-    match wallet_name {
-      Some(wallet_name) => format!("{base_url}/wallet/{wallet_name}"),
-      None => format!("{base_url}/"),
-    }
+  pub(crate) fn bitcoin_rpc_url(&self) -> String {
+    format!("127.0.0.1:{}/", self.bitcoin_rpc_port())
   }
 
-  pub(crate) fn bitcoin_rpc_client(&self, wallet: Option<String>) -> Result<Client> {
-    let rpc_url = self.bitcoin_rpc_url(wallet.clone());
+  pub(crate) fn bitcoin_rpc_client(&self) -> Result<Client> {
+    let rpc_url = self.bitcoin_rpc_url();
 
     let auth = self.bitcoin_rpc_auth()?;
 

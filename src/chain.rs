@@ -28,10 +28,6 @@ impl Chain {
     }
   }
 
-  pub(crate) fn address_from_script(self, script: &Script) -> Result<Address> {
-    Address::from_script(script, self.network()).map_err(|err| anyhow!(err))
-  }
-
   pub(crate) fn join_with_data_dir(self, data_dir: impl AsRef<Path>) -> PathBuf {
     match self {
       Self::Mainnet => data_dir.as_ref().to_owned(),

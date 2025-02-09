@@ -15,6 +15,7 @@ bdk_bitcoind_rpc = "0.17.1"
 bdk_wallet = { version = "1.0.0", features = ["rusqlite"] }
 bitcoin = { version = "0.32.5", features = ["rand", "serde"] }
 clap = { version = "4.5.27", features = ["derive"] }
+dirs = "6.0.0"
 env_logger = "0.11.6"
 log = "0.4.25"
 rusqlite = "0.31.0"
