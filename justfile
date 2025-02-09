@@ -1,8 +1,8 @@
 watch +args='test':
   cargo watch --clear --exec '{{args}}'
 
-run: 
-  RUST_LOG=info cargo run run
+run +args='balance': 
+  RUST_LOG=info cargo run -- --chain signet --data-dir . '{{args}}'
 
 fmt:
   cargo fmt --all

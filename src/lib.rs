@@ -1,5 +1,5 @@
 use {
-  anyhow::Error,
+  anyhow::{anyhow, bail, ensure, Context, Error},
   arguments::Arguments,
   bdk_bitcoind_rpc::{
     bitcoincore_rpc::{Auth, Client, RpcApi},
@@ -8,15 +8,27 @@ use {
   bdk_wallet::{
     bitcoin::{Network, Transaction},
     chain::local_chain::CheckPoint,
-    AddressInfo, Balance, KeychainKind, Wallet,
+    KeychainKind, PersistedWallet, Wallet,
   },
+  chain::Chain,
   clap::Parser,
+  options::Options,
+  rusqlite::Connection,
   serde::{Deserialize, Serialize},
-  std::{env, process},
+  std::{
+    env,
+    fmt::{self, Display, Formatter},
+    path::{Path, PathBuf},
+    process,
+    str::FromStr,
+  },
 };
 
 mod arguments;
+mod chain;
+mod options;
 mod subcommand;
+mod wallet;
 
 type Result<T = (), E = Error> = std::result::Result<T, E>;
 
@@ -38,7 +50,10 @@ pub fn main() {
       process::exit(1);
     }
 
-    Ok(_) => {
+    Ok(output) => {
+      if let Some(output) = output {
+        output.print();
+      }
       process::exit(0);
     }
   }
