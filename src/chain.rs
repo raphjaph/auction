@@ -1,7 +1,6 @@
 use {super::*, clap::ValueEnum};
 
 #[derive(Default, ValueEnum, Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub enum Chain {
   #[default]
   #[value(alias("main"))]

@@ -6,17 +6,22 @@ pub struct Options {
   pub(crate) bitcoin_data_dir: Option<PathBuf>,
   #[arg(long, help = "Connect to Bitcoin Core RPC at <RPC_URL>.")]
   pub(crate) bitcoin_rpc_port: Option<u16>,
-  #[clap(long, help = "Store wallet database and acme cache in <DATA_DIR>.")]
+  #[clap(long, help = "Store wallet database in <DATA_DIR>.")]
   pub(crate) data_dir: Option<PathBuf>,
   #[clap(long, help = "Run on <CHAIN>.")]
   pub(crate) chain: Option<Chain>,
-  #[clap(long, help = "Wallet <DESCRIPTOR> to use for bidding address.")]
-  pub(crate) descriptor: Option<String>,
+  #[clap(long, help = "<WALLET_NAME>.")]
+  pub(crate) wallet_name: Option<String>,
 }
 
 impl Options {
-  pub(crate) fn data_dir(&self) -> PathBuf {
-    self.data_dir.clone().unwrap_or_default()
+  pub(crate) fn data_dir(&self) -> Result<PathBuf> {
+    Ok(match self.data_dir.clone() {
+      Some(data_dir) => data_dir,
+      None => dirs::data_dir()
+        .context("could not get data dir")?
+        .join("auc"),
+    })
   }
 
   pub(crate) fn network(&self) -> Network {
@@ -25,6 +30,19 @@ impl Options {
 
   pub(crate) fn chain(&self) -> Chain {
     self.chain.unwrap_or(Chain::Mainnet)
+  }
+
+  pub(crate) fn wallet_name(&self) -> String {
+    self.wallet_name.clone().unwrap_or("wallet".to_string())
+  }
+
+  pub(crate) fn wallet_dir(&self) -> Result<PathBuf> {
+    Ok(
+      self
+        .chain()
+        .join_with_data_dir(self.data_dir()?.join("wallets"))
+        .join(format!("{}.sqlite3", self.wallet_name())),
+    )
   }
 
   pub(crate) fn bitcoin_rpc_auth(&self) -> Result<Auth> {

@@ -4,9 +4,6 @@ mod balance;
 mod create;
 mod receive;
 
-const EXTERNAL_DESCRIPTOR: &str = "wpkh([20648cc1/84h/1h/0h]tpubDCLwqmrwAw1ie9rU3R92RrYBYxBDdFHW7Cta8ZbGfkfNAsFiQZKEhMKDfC7bFpMiqtR21n1hhZ3YjPPaj8x5P8Lac6gXK1eoa1uncM8AmEc/0/*)#3vw5s4wr";
-const INTERNAL_DESCRIPTOR: &str = "wpkh([20648cc1/84h/1h/0h]tpubDCLwqmrwAw1ie9rU3R92RrYBYxBDdFHW7Cta8ZbGfkfNAsFiQZKEhMKDfC7bFpMiqtR21n1hhZ3YjPPaj8x5P8Lac6gXK1eoa1uncM8AmEc/1/*)";
-
 #[derive(Debug, Parser)]
 pub(crate) enum Subcommand {
   #[command(about = "Create a wallet")]
@@ -19,79 +16,10 @@ pub(crate) enum Subcommand {
 
 impl Subcommand {
   pub(crate) fn run(self, options: Options) -> SubcommandResult {
-    let mut conn = Connection::open(
-      options
-        .chain()
-        .join_with_data_dir(options.data_dir())
-        .join("wallet.sqlite3"),
-    )
-    .unwrap();
-
-    let wallet_opt = Wallet::load()
-      .check_network(options.network())
-      .load_wallet(&mut conn)
-      .unwrap();
-
-    let mut wallet = match wallet_opt {
-      Some(wallet) => {
-        log::info!("Loaded existing wallet database.");
-        wallet
-      }
-      None => {
-        log::info!("Creating new wallet database.");
-        Wallet::create(EXTERNAL_DESCRIPTOR, INTERNAL_DESCRIPTOR)
-          .network(Network::Signet)
-          .create_wallet(&mut conn)
-          .unwrap()
-      }
-    };
-
-    log::info!(
-      "Connecting to Bitcoin Core RPC at {}",
-      options.bitcoin_rpc_url()
-    );
-
-    let rpc_client: Client = options.bitcoin_rpc_client()?;
-
-    let blockchain_info = rpc_client.get_blockchain_info().unwrap();
-
-    log::info!("Chain: {}", blockchain_info.chain);
-
-    log::info!(
-      "Latest block: {} at height {}",
-      blockchain_info.best_block_hash,
-      blockchain_info.blocks,
-    );
-
-    let wallet_tip: CheckPoint = wallet.latest_checkpoint();
-
-    log::info!(
-      "Current wallet tip is: {} at height {}",
-      &wallet_tip.hash(),
-      &wallet_tip.height()
-    );
-
-    let mut emitter = Emitter::new(&rpc_client, wallet_tip.clone(), wallet_tip.height());
-
-    log::info!("Syncing blocks...");
-
-    while let Some(block) = emitter.next_block().unwrap() {
-      wallet
-        .apply_block_connected_to(&block.block, block.block_height(), block.connected_to())
-        .unwrap();
-    }
-
-    log::info!("Syncing mempool...");
-
-    let mempool_emissions: Vec<(Transaction, u64)> = emitter.mempool().unwrap();
-    wallet.apply_unconfirmed_txs(mempool_emissions);
-
-    wallet.persist(&mut conn).unwrap();
-
     match self {
       Self::Create(create) => create.run(options),
-      Self::Balance => balance::run(wallet),
-      Self::Receive => receive::run(&mut wallet),
+      Self::Balance => balance::run(options),
+      Self::Receive => receive::run(options),
     }
   }
 }

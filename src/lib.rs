@@ -28,6 +28,7 @@ mod arguments;
 mod chain;
 mod options;
 mod subcommand;
+mod wallet;
 
 type Result<T = (), E = Error> = std::result::Result<T, E>;
 
